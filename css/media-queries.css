@@ -250,7 +250,7 @@
    /* ----------------------------------------------------------------- */
    #portfolio-wrapper .columns { margin-bottom: 40px; }
    .popup-modal {	max-width: 85%; }
-
+   #portfolio-wrapper{max-width: 75%; margin:auto;)
 
    /* Testimonials Section
    ----------------------------------------------------------------------- */
@@ -357,6 +357,7 @@
    header .social { font-size: 20px;}
    header .social li { margin: 0 6px; }
 
+	#portfolio-wrapper{max-width: 75%; margin:auto;)
    /* footer
    ------------------------------------------------------------------------ */
 
