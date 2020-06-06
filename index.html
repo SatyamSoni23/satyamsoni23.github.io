@@ -3,7 +3,6 @@
 <!--[if IE 8 ]><html class="no-js ie ie8" lang="en"> <![endif]-->
 <!--[if (gte IE 8)|!(IE)]><!--><html class="no-js" lang="en"> <!--<![endif]-->
 <head>
-
    <!--- Basic Page Needs
    ================================================== -->
    <meta charset="utf-8">
@@ -18,7 +17,7 @@
 	<!-- CSS
     ================================================== -->
    <link rel="stylesheet" href="css/default.css">
-    <link rel="stylesheet" href="css/layout.css">
+   <link rel="stylesheet" href="css/layout.css">
    <link rel="stylesheet" href="css/media-queries.css">
    <link rel="stylesheet" href="css/magnific-popup.css">
 
@@ -30,7 +29,116 @@
    <!-- Favicons
 	================================================== -->
 	<link rel="shortcut icon" href="favicon.png" >
+	<!---  AWS LEX ---------------------------------->
+   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.41.0.min.js"></script>
+   <style language="text/css">
+	#infobot{
+		position: fixed;
+		right: 0px;
+		bottom: 0px;
+		z-index: 100;
+	}
+	#conversation{
+		width: 300px;
+		height: 350px;
+		border: 1px solid #ccc;
+		background-color: #0c021f;
+		padding: 4px;
+		overflow: scroll;
+		overflow-x: hidden;
+		scrollbar-width: 4px;
+	}
+	input#wisdom {
+		background-color:#0c0f12;
+		color: #fff;
+		padding: 4px;
+		font-size: 1em;
+		width: 300px;
+		text-style: italic;
+	}
+    input::placeholder {
+        color: #b4b3b4;
+        font-style: italic;
+    }
 
+    p.userRequest {
+        margin: 4px;
+        padding: 4px 10px 4px 10px;
+        border-radius: 4px;
+        min-width: 50%;
+        max-width: 85%;
+        float: left;
+        background-color: #7d7;
+    }
+
+    p.lexResponse {
+        margin: 4px;
+        padding: 4px 10px 4px 10px;
+        border-radius: 4px;
+        text-align: right;
+        min-width: 50%;
+        max-width: 85%;
+        float: right;
+        background-color: #bbf;
+        font-style: italic;
+    }
+
+    p.lexError {
+        margin: 4px;
+        padding: 4px 10px 4px 10px;
+        border-radius: 4px;
+        text-align: right;
+        min-width: 50%;
+        max-width: 85%;
+        float: right;
+        background-color: #f77;
+    }
+	@media only screen and (max-width: 900px){
+		#conversation{
+			width: 250px;
+			height: 300px;
+			border: 1px solid #ccc;
+			background-color: #0c021f;
+			padding: 4px;
+			overflow: scroll;
+			overflow-x: hidden;
+			scrollbar-width: 4px;
+		}
+		input#wisdom {
+			background-color:#0c0f12;
+			color: #fff;
+			padding: 4px;
+			font-size: 1em;
+			width: 250px;
+			text-style: italic;
+		}
+	}
+	@media only screen and (max-width: 767px) {
+		#conversation{
+			width: 200px;
+			height: 250px;
+			border: 1px solid #ccc;
+			background-color: #0c021f;
+			padding: 4px;
+			overflow: scroll;
+			overflow-x: hidden;
+			scrollbar-width: 4px;
+		}
+		input#wisdom {
+			background-color:#0c0f12;
+			color: #fff;
+			padding: 4px;
+			font-size: 1em;
+			width: 200px;
+			text-style: italic;
+		}
+	}
+	@media only screen and (max-width: 480px){
+		#infobot{
+			display: none;
+		}
+	}
+	</style>
 </head>
 
 <body>
@@ -38,7 +146,6 @@
    <!-- Header
    ================================================== -->
    <header id="home">
-
       <nav id="nav-wrap">
 
          <a class="mobile-btn" href="#nav-wrap" title="Show navigation">Show navigation</a>
@@ -53,7 +160,7 @@
          </ul> <!-- end #nav -->
 
       </nav> <!-- end #nav-wrap -->
-
+			
       <div class="row banner">
          <div class="banner-text">
             <h1 class="responsive-headline" style = "font-family: Agency fb;">I'm Satyam Soni.</h1>
@@ -69,11 +176,120 @@
             </ul>
          </div>
       </div>
-
+		
       <p class="scrolldown">
          <a class="smoothscroll" href="#about"><i class="icon-down-circle"></i></a>
       </p>
+	 
+	<!--------------- Lex Chat bot ---------------------------> 
+	<div id = "infobot">
+		
+		
+		<div id="conversation">
+		<p style = "padding: 4px 10px 4px 10px; background-color: #bbf; font-style: italic;  float: center; line-height: 20px; color: #000; border-radius: 4px; text-align: left;"> Hi there, <br>I am Infobot. How can I help you</p>
+		<img src = "chatbot.gif" style="display: block; margin: auto; height: 200px; width: 150px;">
+		</div>
+		<form id="chatform" style="margin-top: 10px" onsubmit="return pushChat();" autocomplete="off">
+			<input type="text" id="wisdom" size="80" value="" placeholder="Hi">
+		</form>
+	</div>
+	<script type="text/javascript">
+        // set the focus to the input box
+    document.getElementById("wisdom").focus();
 
+    // Initialize the Amazon Cognito credentials provider
+    AWS.config.region = 'us-east-1'; // Region
+    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    // Provide your Pool Id here
+        IdentityPoolId: 'us-east-1:d384e674-a5b6-40db-90d5-a71a9c957143',
+    });
+
+    var lexruntime = new AWS.LexRuntime();
+    var lexUserId = 'Infobot' + Date.now();
+    var sessionAttributes = {};
+
+    function pushChat() {
+
+        // if there is text to be sent...
+        var wisdomText = document.getElementById('wisdom');
+        if (wisdomText && wisdomText.value && wisdomText.value.trim().length > 0) {
+
+            // disable input to show we're sending it
+            var wisdom = wisdomText.value.trim();
+            wisdomText.value = '...';
+            wisdomText.locked = true;
+
+            // send it to the Lex runtime
+            var params = {
+                botAlias: '$LATEST',
+                botName: 'Infobot',
+                inputText: wisdom,
+                userId: lexUserId,
+                sessionAttributes: sessionAttributes
+            };
+            showRequest(wisdom);
+            lexruntime.postText(params, function(err, data) {
+                if (err) {
+                    console.log(err, err.stack);
+                    showError('Error:  ' + err.message + ' (see console for details)')
+                }
+                if (data) {
+                    // capture the sessionAttributes for the next cycle
+                    sessionAttributes = data.sessionAttributes;
+                    // show response and/or error/dialog status
+                    showResponse(data);
+                }
+                // re-enable input
+                wisdomText.value = '';
+                wisdomText.locked = false;
+            });
+        }
+        // we always cancel form submission
+        return false;
+    }
+
+    function showRequest(daText) {
+
+        var conversationDiv = document.getElementById('conversation');
+        var requestPara = document.createElement("P");
+        requestPara.className = 'userRequest';
+        requestPara.appendChild(document.createTextNode(daText));
+        conversationDiv.appendChild(requestPara);
+        conversationDiv.scrollTop = conversationDiv.scrollHeight;
+    }
+
+    function showError(daText) {
+
+        var conversationDiv = document.getElementById('conversation');
+        var errorPara = document.createElement("P");
+        errorPara.className = 'lexError';
+        errorPara.appendChild(document.createTextNode(daText));
+        conversationDiv.appendChild(errorPara);
+        conversationDiv.scrollTop = conversationDiv.scrollHeight;
+    }
+
+    function showResponse(lexResponse) {
+
+        var conversationDiv = document.getElementById('conversation');
+        var responsePara = document.createElement("P");
+        responsePara.className = 'lexResponse';
+        if (lexResponse.message) {
+            responsePara.appendChild(document.createTextNode(lexResponse.message));
+            responsePara.appendChild(document.createElement('br'));
+        }
+        if (lexResponse.dialogState === 'ReadyForFulfillment') {
+            responsePara.appendChild(document.createTextNode(
+                'Ready for fulfillment'));
+            // TODO:  show slot values
+        } else {
+            responsePara.appendChild(document.createTextNode(
+                '(' + lexResponse.dialogState + ')'));
+        }
+        conversationDiv.appendChild(responsePara);
+        conversationDiv.scrollTop = conversationDiv.scrollHeight;
+    }
+</script>
+	<!--------------------------------------------------------->
    </header> <!-- Header End -->
 
 
@@ -119,7 +335,7 @@
 
                 <div class="columns download">
                     <p>
-                        <a href="https://drive.google.com/open?id=185bULEpeH6PY7fc3KwaECr0g3SU6xlCn" class="button" target="_blank"><i class="fa fa-download"></i>Download Resume</a>
+                        <a href="https://drive.google.com/file/d/1dbQNHoToCcojeey4lxDShs_baqcciO4_/view?usp=sharing" class="button" target="_blank"><i class="fa fa-download"></i>Download Resume</a>
                     </p>
                 </div>
 
